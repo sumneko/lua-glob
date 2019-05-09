@@ -184,4 +184,11 @@ test 'example.[0-9a-z]'
     : no 'example.'
     : no 'example.10'
 
+test([[
+src
+!*.dll
+]], { ignoreCase = true })
+    : ok 'Src/main.lua'
+    : no 'Src/lpeg.dll'
+
 print('Test done.')
