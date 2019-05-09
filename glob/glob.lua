@@ -53,6 +53,9 @@ local function copyTable(t)
 end
 
 function mt:addPattern(pat)
+    if self.options.ignoreCase then
+        pat = pat:lower()
+    end
     local states, err = parser:match(pat)
     if not states then
         self.errors[#self.errors+1] = {
@@ -77,6 +80,9 @@ function mt:parsePattern()
 end
 
 function mt:__call(path)
+    if self.options.ignoreCase then
+        path = path:lower()
+    end
     for _, refused in ipairs(self.refused) do
         if refused:match(path) then
             return false
