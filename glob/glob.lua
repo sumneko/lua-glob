@@ -1,4 +1,5 @@
 local m = require 'lpeglabel'
+local matcher = require 'glob.matcher'
 
 local function prop(name, pat)
     return m.Cg(m.Cc(true), name) * pat
@@ -52,8 +53,21 @@ local function copyTable(t)
 end
 
 function mt:addPattern(pat)
-    local state, err = parser:match(pat)
-    print(state and table.dump(state) or err)
+    local states, err = parser:match(pat)
+    if not states then
+        self.errors[#self.errors+1] = {
+            pattern = pat,
+            message = err
+        }
+        return
+    end
+    for _, state in ipairs(states) do
+        if state.neg then
+            self.refused[#self.refused+1] = matcher(state)
+        else
+            self.passed[#self.passed+1] = matcher(state)
+        end
+    end
 end
 
 function mt:parsePattern()
@@ -62,10 +76,27 @@ function mt:parsePattern()
     end
 end
 
+function mt:__call(path)
+    for _, refused in ipairs(self.refused) do
+        if refused:match(path) then
+            return false
+        end
+    end
+    for _, passed in ipairs(self.passed) do
+        if passed:match(path) then
+            return true
+        end
+    end
+    return false
+end
+
 return function (pattern, options)
     local self = setmetatable({
         pattern = copyTable(pattern or {}),
         options = copyTable(options or {}),
+        passed  = {},
+        refused = {},
+        errors  = {},
     }, mt)
     self:parsePattern()
     return self
