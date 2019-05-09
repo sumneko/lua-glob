@@ -21,29 +21,40 @@ function mt:exp(state, index)
         return
     end
     if exp.type == 'word' then
-        local current = self:exp(exp.value, 1)
-        local after = self:exp(state, index + 1)
-        if after then
-            return current * Slash * after
-        else
-            return current
-        end
+        return self:word(exp, state, index + 1)
     elseif exp.type == 'char' then
-        local current = m.P(exp.value)
-        local after = self:exp(state, index + 1)
-        if after then
-            return current * after * NoWord
-        else
-            return current * NoWord
-        end
+        return self:char(exp, state, index + 1)
     elseif exp.type == '**' then
-        return self:anyPath(state, index + 1)
+        return self:anyPath(exp, state, index + 1)
     elseif exp.type == '*' then
-        return self:anyChar(state, index + 1)
+        return self:anyChar(exp, state, index + 1)
+    elseif exp.type == '?' then
+        return self:oneChar(exp, state, index + 1)
+    elseif exp.type == '[]' then
     end
 end
 
-function mt:anyPath(state, index)
+function mt:word(exp, state, index)
+    local current = self:exp(exp.value, 1)
+    local after = self:exp(state, index)
+    if after then
+        return current * Slash * after
+    else
+        return current
+    end
+end
+
+function mt:char(exp, state, index)
+    local current = m.P(exp.value)
+    local after = self:exp(state, index)
+    if after then
+        return current * after * NoWord
+    else
+        return current * NoWord
+    end
+end
+
+function mt:anyPath(_, state, index)
     local after = self:exp(state, index)
     if after then
         return m.P {
@@ -56,7 +67,7 @@ function mt:anyPath(state, index)
     end
 end
 
-function mt:anyChar(state, index)
+function mt:anyChar(_, state, index)
     local after = self:exp(state, index)
     if after then
         return m.P {
@@ -69,11 +80,20 @@ function mt:anyChar(state, index)
     end
 end
 
+function mt:oneChar(_, state, index)
+    local after = self:exp(state, index)
+    if after then
+        return Char * after
+    else
+        return Char
+    end
+end
+
 function mt:pattern(state)
     if state.root then
         return m.C(self:exp(state, 1))
     else
-        return m.C(self:anyPath(state, 1))
+        return m.C(self:anyPath(nil, state, 1))
     end
 end
 

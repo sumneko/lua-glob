@@ -163,4 +163,11 @@ test '{**/*.html, **/*.txt}'
     : ok 'a/b.txt'
     : no '1.lua'
 
+test 'a?b'
+    : ok 'acb'
+    : no 'ab'
+    : no 'a/b'
+    : no 'aaab'
+    : no 'abbb'
+
 print('Test done.')
