@@ -85,15 +85,19 @@ function mt:__call(path, watcher)
         watcher = nil
     end
     for _, refused in ipairs(self.refused) do
-        if (not watcher or watcher(refused) == true)
-        and refused(path) then
-            return false
+        local catch = refused(path)
+        if catch then
+            if not watcher or watcher(refused, catch) == true then
+                return false
+            end
         end
     end
     for _, passed in ipairs(self.passed) do
-        if (not watcher or watcher(passed) == true)
-        and passed(path) then
-            return true
+        local catch = passed(path)
+        if catch then
+            if not watcher or watcher(passed, catch) == true then
+                return true
+            end
         end
     end
     return false

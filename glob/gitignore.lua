@@ -12,7 +12,7 @@ function mt:setOption(op, val)
     return self.parser:setOption(op, val)
 end
 
-function mt:addMethod(key, func)
+function mt:setMethod(key, func)
     if type(func) ~= 'function' then
         return
     end
@@ -20,11 +20,16 @@ function mt:addMethod(key, func)
 end
 
 function mt:__call(path)
-    if self.method.isDirectory then
-        local isDirectory = self.method.isDirectory(path)
-        return self.parser(path, function (matcher)
+    if self.method.type then
+        return self.parser(path, function (matcher, catch)
             if matcher:isNeedDirectory() then
-                return isDirectory == true
+                if #catch < #path then
+                    -- if path is 'a/b/c' and catch is 'a/b'
+                    -- then the catch must be a directory
+                    return true
+                else
+                    return self.method.type(self, catch) == 'directory'
+                end
             end
             return true
         end)
@@ -43,7 +48,7 @@ return function (pattern, options, methods)
 
     if type(methods) == 'table' then
         for key, func in pairs(methods) do
-            self:addMethod(key, func)
+            self:setMethod(key, func)
         end
     end
 
