@@ -1,4 +1,4 @@
-require 'utility'
+require 'test.utility'
 local glob = require 'glob'
 
 local mt = {}
@@ -24,8 +24,6 @@ local function test(patternStr, options)
         matcher = matcher
     }, mt)
 end
-
-print('Test start.')
 
 test 'example'
     : ok 'example'
@@ -190,5 +188,3 @@ src
 ]], { ignoreCase = true })
     : ok 'Src/main.lua'
     : no 'Src/lpeg.dll'
-
-print('Test done.')

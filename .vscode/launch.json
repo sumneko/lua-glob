@@ -8,7 +8,7 @@
             "type": "lua",
             "request": "launch",
             "name": "Launch",
-            "program": "${workspaceFolder}/test.lua",
+            "program": "${workspaceFolder}/test/init.lua",
             "luaRuntime": "5.4 64bit",
             "path": "${workspaceFolder}/?.lua;${workspaceFolder}/?/init.lua",
             "cpath": "${workspaceFolder}/bin/?.dll",
