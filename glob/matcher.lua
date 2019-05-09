@@ -31,6 +31,7 @@ function mt:exp(state, index)
     elseif exp.type == '?' then
         return self:oneChar(exp, state, index + 1)
     elseif exp.type == '[]' then
+        return self:range(exp, state, index + 1)
     end
 end
 
@@ -86,6 +87,20 @@ function mt:oneChar(_, state, index)
         return Char * after
     else
         return Char
+    end
+end
+
+function mt:range(exp, state, index)
+    local after = self:exp(state, index)
+    local ranges = {}
+    for _, range in ipairs(exp.value) do
+        ranges[#ranges+1] = range[1] .. range[2]
+    end
+    local current = m.R(table.unpack(ranges))
+    if after then
+        return current * after
+    else
+        return current
     end
 end
 

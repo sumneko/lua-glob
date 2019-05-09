@@ -170,4 +170,18 @@ test 'a?b'
     : no 'aaab'
     : no 'abbb'
 
+test 'example.[0-9]'
+    : ok 'example.0'
+    : ok 'example.5'
+    : no 'example.'
+    : no 'example.a'
+    : no 'example.10'
+
+test 'example.[0-9a-z]'
+    : ok 'example.0'
+    : ok 'example.5'
+    : ok 'example.a'
+    : no 'example.'
+    : no 'example.10'
+
 print('Test done.')
