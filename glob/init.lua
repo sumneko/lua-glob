@@ -1,3 +1,4 @@
 return {
-    glob = require 'glob.glob'
+    glob = require 'glob.glob',
+    gitignore = require 'glob.gitignore',
 }

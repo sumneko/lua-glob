@@ -32,6 +32,8 @@ function mt:exp(state, index)
         return self:oneChar(exp, state, index + 1)
     elseif exp.type == '[]' then
         return self:range(exp, state, index + 1)
+    elseif exp.type == '/' then
+        return self:slash(exp, state, index + 1)
     end
 end
 
@@ -104,6 +106,16 @@ function mt:range(exp, state, index)
     end
 end
 
+function mt:slash(_, state, index)
+    local after = self:exp(state, index)
+    if after then
+        return after
+    else
+        self.needDirectory = true
+        return nil
+    end
+end
+
 function mt:pattern(state)
     if state.root then
         return m.C(self:exp(state, 1))
@@ -112,10 +124,18 @@ function mt:pattern(state)
     end
 end
 
+function mt:isNeedDirectory()
+    return self.needDirectory == true
+end
+
+function mt:__call(path)
+    return self.matcher:match(path)
+end
+
 return function (state, options)
     local self = setmetatable({
         options = options,
     }, mt)
-    local matcher = self:pattern(state)
-    return matcher
+    self.matcher = self:pattern(state)
+    return self
 end

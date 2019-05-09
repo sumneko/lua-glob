@@ -1,4 +1,3 @@
-require 'test.utility'
 local glob = require 'glob'
 
 local mt = {}
@@ -26,6 +25,7 @@ local function test(pattern, options)
     }, mt)
 end
 
+print 'Test glob ...'
 test 'example'
     : ok 'example'
     : ok 'abc/example'

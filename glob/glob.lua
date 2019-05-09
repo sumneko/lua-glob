@@ -29,7 +29,7 @@ local parser = m.P {
                     ,
     ['NeedRoot']    = prop('root', (m.P'.' * m.V'Slash' + m.V'Slash')),
     ['Unit']        = m.V'Sp' * m.V'NeedRoot'^-1 * expect(m.V'Exp', 'Miss exp') * m.V'Sp',
-    ['Exp']         = m.V'Sp' * (m.V'FSymbol' + m.V'Slash' + m.V'Word')^0 * m.V'Sp',
+    ['Exp']         = m.V'Sp' * (m.V'FSymbol' + object('/', m.V'Slash') + m.V'Word')^0 * m.V'Sp',
     ['Word']        = object('word', m.Ct((m.V'CSymbol' + m.V'Char' - m.V'FSymbol')^1)),
     ['CSymbol']     = object('*',    m.P'*')
                     + object('?',    m.P'?')
@@ -77,17 +77,22 @@ function mt:setOption(op, val)
     self.options[op] = val
 end
 
-function mt:__call(path)
+function mt:__call(path, watcher)
     if self.options.ignoreCase then
         path = path:lower()
     end
+    if type(watcher) ~= 'function' then
+        watcher = nil
+    end
     for _, refused in ipairs(self.refused) do
-        if refused:match(path) then
+        if (not watcher or watcher(refused) == true)
+        and refused(path) then
             return false
         end
     end
     for _, passed in ipairs(self.passed) do
-        if passed:match(path) then
+        if (not watcher or watcher(passed) == true)
+        and passed(path) then
             return true
         end
     end
