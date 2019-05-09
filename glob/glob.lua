@@ -20,22 +20,23 @@ local parser = m.P {
     'Main',
     ['Sp']          = m.S(' \t')^0,
     ['Slash']       = m.S('/\\')^1,
-    ['Main']        = m.Ct(m.P'{' * m.P'Pattern' * (',' * m.V'Pattern')^0 * m.P'}')
+    ['Main']        = m.Ct(m.V'Sp' * m.P'{' * m.V'Pattern' * (',' * expect(m.V'Pattern', 'Miss exp after ","'))^0 * m.P'}')
                     + m.Ct(m.V'Pattern')
                     + m.T'Main Failed'
                     ,
-    ['Pattern']     = m.V'Sp' * m.Ct(prop('neg', m.P'!') * expect(m.V'Unit', 'Miss exp after "!"'))
+    ['Pattern']     = m.Ct(m.V'Sp' * prop('neg', m.P'!') * expect(m.V'Unit', 'Miss exp after "!"'))
                     + m.Ct(m.V'Unit')
                     ,
     ['NeedRoot']    = prop('root', (m.P'.' * m.V'Slash' + m.V'Slash')),
     ['Unit']        = m.V'Sp' * m.V'NeedRoot'^-1 * expect(m.V'Exp', 'Miss exp') * m.V'Sp',
-    ['Exp']         = m.V'Sp' * (m.V'Symbol' + m.V'Slash' + m.V'Word')^0 * m.V'Sp',
-    ['Word']        = object('word', (1 - m.V'Symbol' - m.V'Slash')^1),
-    ['Symbol']      = object('**', m.P'**')
-                    + object('*',  m.P'*')
-                    + object('?',  m.P'?')
-                    + object('[]', m.V'Range')
+    ['Exp']         = m.V'Sp' * (m.V'FSymbol' + m.V'Slash' + m.V'Word')^0 * m.V'Sp',
+    ['Word']        = object('word', m.Ct((m.V'CSymbol' + m.V'Char' - m.V'FSymbol')^1)),
+    ['CSymbol']     = object('*',    m.P'*')
+                    + object('?',    m.P'?')
+                    + object('[]',   m.V'Range')
                     ,
+    ['Char']        = object('char', (1 - m.S',{}[]*?/\\')^1),
+    ['FSymbol']     = object('**', m.P'**'),
     ['Range']       = m.P'[' * m.Ct(prop('range', m.V'RangeUnit'^0)) * m.P']',
     ['RangeUnit']   = m.Ct(- m.P']' * m.C(m.P(1)) * (m.P'-' * - m.P']' * m.C(m.P(1)))^-1),
 }
