@@ -43,4 +43,46 @@ test('example', { ignoreCase = true })
     : ok 'example'
     : ok 'Example'
 
+test '/example'
+    : ok 'example'
+    : ok 'example/xx'
+    : no 'xx/example'
+
+test '/a/b'
+    : ok 'a/b'
+    : ok 'a/b/c'
+    : no 'b/a/b'
+
+test './a'
+    : ok 'a'
+    : ok 'a/b'
+    : no 'b/a'
+
+test [[
+a
+b
+]]
+    : ok 'a'
+    : ok 'b'
+    : ok 'ccc/a'
+    : ok 'ccc/b'
+
+test [[
+a
+!b
+]]
+    : ok 'a'
+    : no 'b'
+    : no 'b/a'
+    : no 'a/b'
+    : no 'c/b'
+    : ok 'c/a'
+
+test [[
+a
+!/a
+]]
+    : no 'a'
+    : ok 'b/a'
+
 print('Test done.')
