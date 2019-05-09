@@ -1,7 +1,7 @@
 local m = require 'lpeglabel'
 
 local slash = m.S('/\\')^1
-local path  = (1 - slash)^1 * slash
+local path  =  (1 - slash)^1
 local function whatHappened()
     return m.Cmt(m.P(1)^1, function (...)
         print(...)
@@ -17,24 +17,30 @@ function mt:exp(state, index)
     if not exp then
         return
     end
-    local current
-    local after = self:exp(state, index + 1)
     if exp.type == 'word' then
-        current = m.P(exp.value)
-    end
-    if after then
-        return current * after
-    else
-        return current
+        local current = m.P(exp.value)
+        local after = self:exp(state, index + 1)
+        if after then
+            return current * slash * after
+        else
+            return current
+        end
+    elseif exp.type == '**' then
+        return self:anyPath(state, index + 1)
     end
 end
 
 function mt:anyPath(state, index)
-    return m.P {
-        'Main',
-        Main    = self:exp(state, index)
-                + path * m.V'Main'
-    }
+    local after = self:exp(state, index)
+    if after then
+        return m.P {
+            'Main',
+            Main    = after
+                    + path * slash * m.V'Main'
+        }
+    else
+        return path^0
+    end
 end
 
 function mt:pattern(state)

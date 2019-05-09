@@ -29,8 +29,8 @@ local parser = m.P {
                     ,
     ['NeedRoot']    = prop('root', (m.P'.' * m.V'Slash' + m.V'Slash')),
     ['Unit']        = m.V'Sp' * m.V'NeedRoot'^-1 * expect(m.V'Exp', 'Miss exp') * m.V'Sp',
-    ['Exp']         = m.V'Sp' * (m.V'Symbol' + m.V'Word')^0 * m.V'Sp',
-    ['Word']        = object('word', (1 - m.V'Symbol')^1),
+    ['Exp']         = m.V'Sp' * (m.V'Symbol' + m.V'Slash' + m.V'Word')^0 * m.V'Sp',
+    ['Word']        = object('word', (1 - m.V'Symbol' - m.V'Slash')^1),
     ['Symbol']      = object('**', m.P'**')
                     + object('*',  m.P'*')
                     + object('?',  m.P'?')

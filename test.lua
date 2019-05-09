@@ -85,4 +85,38 @@ a
     : no 'a'
     : ok 'b/a'
 
+test '**/a'
+    : ok 'a'
+    : ok 'b/a'
+    : ok 'c/b/a'
+    : ok 'a/b'
+    : ok 'c/a/b'
+
+test '**a'
+    : ok 'a'
+    : ok 'b/a'
+    : ok 'c/b/a'
+    : ok 'a/b'
+    : ok 'c/a/b'
+
+test 'a/**/b'
+    : ok 'a/b'
+    : ok 'a/c/b'
+    : ok 'd/a/c/d/e/b'
+
+test 'a**b'
+    : ok 'a/b'
+    : ok 'a/c/b'
+    : ok 'd/a/c/d/e/b'
+
+test 'a/**b'
+    : ok 'a/b'
+    : ok 'a/c/b'
+    : ok 'd/a/c/d/e/b'
+
+test 'a**/b'
+    : ok 'a/b'
+    : ok 'a/c/b'
+    : ok 'd/a/c/d/e/b'
+
 print('Test done.')
