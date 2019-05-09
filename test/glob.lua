@@ -14,11 +14,12 @@ function mt:no(path)
     return self
 end
 
-local function test(patternStr, options)
-    local pattern = {}
-    for l in patternStr:gmatch '[^\r\n]+' do
-        pattern[#pattern+1] = l
-    end
+function mt:op(key)
+    self.matcher:setOption(key)
+    return self
+end
+
+local function test(pattern, options)
     local matcher = glob.glob(pattern, options)
     return setmetatable({
         matcher = matcher
@@ -38,7 +39,8 @@ test 'example'
     : no 'aexample'
     : no 'examplea'
 
-test('example', { ignoreCase = true })
+test 'example'
+    : op 'ignoreCase'
     : ok 'example'
     : ok 'Example'
     : no 'aexample'
@@ -58,20 +60,14 @@ test './a'
     : ok 'a/b'
     : no 'b/a'
 
-test [[
-a
-b
-]]
+test {'a', 'b'}
     : ok 'a'
     : ok 'b'
     : ok 'ccc/a'
     : ok 'ccc/b'
     : no 'c'
 
-test [[
-a
-!b
-]]
+test {'a','!b'}
     : ok 'a'
     : no 'b'
     : no 'b/a'
@@ -79,10 +75,7 @@ a
     : no 'c/b'
     : ok 'c/a'
 
-test [[
-a
-!/a
-]]
+test {'a','!/a'}
     : no 'a'
     : ok 'b/a'
 
@@ -154,6 +147,13 @@ test 'a*b'
     : no 'abc'
     : no 'a/b'
 
+test 'doc/*.txt'
+    : ok 'doc/notes.txt'
+    : no 'doc/server/arch.txt'
+
+test {'*.a','!lib.a'}
+    : no 'lib.a'
+
 test '{**/*.html, **/*.txt}'
     : ok '1.html'
     : ok '1.txt'
@@ -182,9 +182,7 @@ test 'example.[0-9a-z]'
     : no 'example.'
     : no 'example.10'
 
-test([[
-src
-!*.dll
-]], { ignoreCase = true })
+test {'src', '!*.dll'}
+    : op 'ignoreCase'
     : ok 'Src/main.lua'
     : no 'Src/lpeg.dll'

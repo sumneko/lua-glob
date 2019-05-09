@@ -45,15 +45,11 @@ local mt = {}
 mt.__index = mt
 mt.__name = 'glob'
 
-local function copyTable(t)
-    local new = {}
-    for k, v in pairs(t) do
-        new[k] = v
-    end
-    return new
-end
-
 function mt:addPattern(pat)
+    if type(pat) ~= 'string' then
+        return
+    end
+    self.pattern[#self.pattern+1] = pat
     if self.options.ignoreCase then
         pat = pat:lower()
     end
@@ -74,10 +70,11 @@ function mt:addPattern(pat)
     end
 end
 
-function mt:parsePattern()
-    for _, pat in ipairs(self.pattern) do
-        self:addPattern(pat)
+function mt:setOption(op, val)
+    if val == nil then
+        val = true
     end
+    self.options[op] = val
 end
 
 function mt:__call(path)
@@ -99,12 +96,23 @@ end
 
 return function (pattern, options)
     local self = setmetatable({
-        pattern = copyTable(pattern or {}),
-        options = copyTable(options or {}),
+        pattern = {},
+        options = {},
         passed  = {},
         refused = {},
         errors  = {},
     }, mt)
-    self:parsePattern()
+    if type(pattern) == 'table' then
+        for _, pat in ipairs(pattern) do
+            self:addPattern(pat)
+        end
+    else
+        self:addPattern(pattern)
+    end
+    if type(options) == 'table' then
+        for op, val in pairs(options) do
+            self:setOption(op, val)
+        end
+    end
     return self
 end
