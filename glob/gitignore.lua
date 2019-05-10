@@ -96,10 +96,7 @@ function mt:checkDirectory(catch, path, matcher)
     end
 end
 
-function mt:__call(path)
-    if self.options.ignoreCase then
-        path = path:lower()
-    end
+function mt:simpleMatch(path)
     for i = #self.matcher, 1, -1 do
         local matcher = self.matcher[i]
         local catch = matcher(path)
@@ -111,6 +108,26 @@ function mt:__call(path)
             end
         end
     end
+end
+
+function mt:__call(path)
+    if self.options.ignoreCase then
+        path = path:lower()
+    end
+    local paths = {}
+    for filename in path:gmatch '[^/\\]+' do
+        paths[#paths+1] = filename
+    end
+    for i = 1, #paths do
+        local newPath = table.concat(paths, '/', 1, i)
+        local passed = self:simpleMatch(newPath)
+        if passed == true then
+            return true
+        elseif passed == false then
+            return false
+        end
+    end
+    return false
 end
 
 return function (pattern, options, methods)

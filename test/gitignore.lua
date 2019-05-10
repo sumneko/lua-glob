@@ -31,11 +31,6 @@ local function test(pattern, options)
 end
 
 print 'Test gitignore ...'
-test {'src', '!*.dll'}
-    : op 'ignoreCase'
-    : ok 'Src/main.lua'
-    : no 'Src/lpeg.dll'
-
 test 'src/'
     : ok 'src/a'
     : ok 'a/src'
@@ -65,7 +60,6 @@ test 'src/'
     : ok 'src/a'
     : no 'a/src'
 
-do return end
 test {'aaa', '!aaa/bbb'}
     : tp(function (_, path)
         if path == 'aaa' then

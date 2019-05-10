@@ -9,7 +9,7 @@ Require [LPegLabel](https://github.com/sqmedeiros/lpeglabel)
 local glob = require 'glob'
 
 local pattern = {
-    'src',
+    'src/*',
     '!*.dll',
 }
 local options = {
