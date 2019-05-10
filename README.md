@@ -23,7 +23,7 @@ parser 'Src/lpeg.dll' --> false
 
 ## gitignore
 
-### simple
+### match
 ```lua
 local glob = require 'glob'
 

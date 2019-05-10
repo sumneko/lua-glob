@@ -18,8 +18,8 @@ function mt:op(key)
     return self
 end
 
-function mt:tp(func)
-    self.matcher:setMethod('type', func)
+function mt:ft(func)
+    self.matcher:setInterface('fileType', func)
     return self
 end
 
@@ -36,7 +36,7 @@ test 'src/'
     : ok 'a/src'
 
 test 'src/'
-    : tp(function (_, path)
+    : ft(function (_, path)
         if path == 'a/src' then
             return 'file'
         else
@@ -47,21 +47,21 @@ test 'src/'
     : no 'a/src'
 
 test 'src/'
-    : tp(function (_, path)
+    : ft(function (_, path)
         return 'directory'
     end)
     : ok 'src/a'
     : ok 'a/src'
 
 test 'src/'
-    : tp(function (_, path)
+    : ft(function (_, path)
         return 'file'
     end)
     : ok 'src/a'
     : no 'a/src'
 
 test {'aaa', '!aaa/bbb'}
-    : tp(function (_, path)
+    : ft(function (_, path)
         if path == 'aaa' then
             return 'directory'
         else
@@ -73,7 +73,7 @@ test {'aaa', '!aaa/bbb'}
     : ok 'aaa/ccc'
 
 test {'aaa/', '!aaa/bbb'}
-    : tp(function (_, path)
+    : ft(function (_, path)
         if path == 'aaa' then
             return 'directory'
         else
@@ -85,7 +85,7 @@ test {'aaa/', '!aaa/bbb'}
     : ok 'aaa/ccc'
 
 test {'aaa/*', '!aaa/bbb'}
-    : tp(function (_, path)
+    : ft(function (_, path)
         if path == 'aaa' then
             return 'directory'
         else

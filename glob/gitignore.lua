@@ -73,15 +73,24 @@ function mt:setOption(op, val)
     self.options[op] = val
 end
 
-function mt:setMethod(key, func)
+function mt:setInterface(key, func)
     if type(func) ~= 'function' then
         return
     end
-    self.method[key] = func
+    self.interface[key] = func
+end
+
+function mt:callInterface(name, ...)
+    local func = self.interface[name]
+    return func(self, ...)
+end
+
+function mt:hasInterface(name)
+    return self.interface[name] ~= nil
 end
 
 function mt:checkDirectory(catch, path, matcher)
-    if not self.method.type then
+    if not self:hasInterface 'fileType' then
         return true
     end
     if not matcher:isNeedDirectory() then
@@ -92,7 +101,7 @@ function mt:checkDirectory(catch, path, matcher)
         -- then the catch must be a directory
         return true
     else
-        return self.method.type(self, catch) == 'directory'
+        return self:callInterface('fileType', path) == 'directory'
     end
 end
 
@@ -110,10 +119,7 @@ function mt:simpleMatch(path)
     end
 end
 
-function mt:__call(path)
-    if self.options.ignoreCase then
-        path = path:lower()
-    end
+function mt:finishMatch(path)
     local paths = {}
     for filename in path:gmatch '[^/\\]+' do
         paths[#paths+1] = filename
@@ -130,13 +136,23 @@ function mt:__call(path)
     return false
 end
 
-return function (pattern, options, methods)
+function mt:scan(callback)
+end
+
+function mt:__call(path)
+    if self.options.ignoreCase then
+        path = path:lower()
+    end
+    return self:finishMatch(path)
+end
+
+return function (pattern, options, interface)
     local self = setmetatable({
-        pattern = {},
-        options = {},
-        matcher = {},
-        errors  = {},
-        method  = {},
+        pattern   = {},
+        options   = {},
+        matcher   = {},
+        errors    = {},
+        interface = {},
     }, mt)
 
     if type(pattern) == 'table' then
@@ -153,9 +169,9 @@ return function (pattern, options, methods)
         end
     end
 
-    if type(methods) == 'table' then
-        for key, func in pairs(methods) do
-            self:setMethod(key, func)
+    if type(interface) == 'table' then
+        for key, func in pairs(interface) do
+            self:setInterface(key, func)
         end
     end
 
