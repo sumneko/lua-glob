@@ -128,6 +128,10 @@ function mt:isNeedDirectory()
     return self.needDirectory == true
 end
 
+function mt:isNegative()
+    return self.state.neg == true
+end
+
 function mt:__call(path)
     return self.matcher:match(path)
 end
@@ -135,6 +139,7 @@ end
 return function (state, options)
     local self = setmetatable({
         options = options,
+        state   = state,
     }, mt)
     self.matcher = self:pattern(state)
     return self

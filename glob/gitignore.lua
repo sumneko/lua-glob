@@ -62,11 +62,7 @@ function mt:addPattern(pat)
         return
     end
     for _, state in ipairs(states) do
-        if state.neg then
-            self.refused[#self.refused+1] = matcher(state)
-        else
-            self.passed[#self.passed+1] = matcher(state)
-        end
+        self.matcher[#self.matcher+1] = matcher(state)
     end
 end
 
@@ -104,27 +100,24 @@ function mt:__call(path)
     if self.options.ignoreCase then
         path = path:lower()
     end
-    for _, refused in ipairs(self.refused) do
-        local catch = refused(path)
-        if catch and self:checkDirectory(catch, path, refused) then
-            return false
+    for i = #self.matcher, 1, -1 do
+        local matcher = self.matcher[i]
+        local catch = matcher(path)
+        if catch and self:checkDirectory(catch, path, matcher) then
+            if matcher:isNegative() then
+                return false
+            else
+                return true
+            end
         end
     end
-    for _, passed in ipairs(self.passed) do
-        local catch = passed(path)
-        if catch and self:checkDirectory(catch, path, passed) then
-            return true
-        end
-    end
-    return false
 end
 
 return function (pattern, options, methods)
     local self = setmetatable({
         pattern = {},
         options = {},
-        passed  = {},
-        refused = {},
+        matcher = {},
         errors  = {},
         method  = {},
     }, mt)

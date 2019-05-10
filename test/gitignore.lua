@@ -64,6 +64,7 @@ test 'src/'
     end)
     : ok 'src/a'
     : no 'a/src'
+
 do return end
 test {'aaa', '!aaa/bbb'}
     : tp(function (_, path)
