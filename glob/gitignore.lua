@@ -137,6 +137,21 @@ function mt:finishMatch(path)
 end
 
 function mt:scan(callback)
+    local list = {}
+    local result = self:callInterface('listFile', '')
+    if type(result) ~= 'table' then
+        return
+    end
+    for _, path in ipairs(result) do
+        list[#list+1] = result
+    end
+    while #list > 0 do
+        local current = list[#list]
+        if not current then
+            break
+        end
+        list[#list] = nil
+    end
 end
 
 function mt:__call(path)
