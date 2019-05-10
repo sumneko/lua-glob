@@ -1,15 +1,80 @@
-local glob = require 'glob.glob'
+local m = require 'lpeglabel'
+local matcher = require 'glob.matcher'
+
+local function prop(name, pat)
+    return m.Cg(m.Cc(true), name) * pat
+end
+
+local function object(type, pat)
+    return m.Ct(
+        m.Cg(m.Cc(type), 'type') *
+        m.Cg(pat, 'value')
+    )
+end
+
+local function expect(p, err)
+    return p + m.T(err)
+end
+
+local parser = m.P {
+    'Main',
+    ['Sp']          = m.S(' \t')^0,
+    ['Slash']       = m.S('/\\')^1,
+    ['Main']        = m.Ct(m.V'Sp' * m.P'{' * m.V'Pattern' * (',' * expect(m.V'Pattern', 'Miss exp after ","'))^0 * m.P'}')
+                    + m.Ct(m.V'Pattern')
+                    + m.T'Main Failed'
+                    ,
+    ['Pattern']     = m.Ct(m.V'Sp' * prop('neg', m.P'!') * expect(m.V'Unit', 'Miss exp after "!"'))
+                    + m.Ct(m.V'Unit')
+                    ,
+    ['NeedRoot']    = prop('root', (m.P'.' * m.V'Slash' + m.V'Slash')),
+    ['Unit']        = m.V'Sp' * m.V'NeedRoot'^-1 * expect(m.V'Exp', 'Miss exp') * m.V'Sp',
+    ['Exp']         = m.V'Sp' * (m.V'FSymbol' + object('/', m.V'Slash') + m.V'Word')^0 * m.V'Sp',
+    ['Word']        = object('word', m.Ct((m.V'CSymbol' + m.V'Char' - m.V'FSymbol')^1)),
+    ['CSymbol']     = object('*',    m.P'*')
+                    + object('?',    m.P'?')
+                    + object('[]',   m.V'Range')
+                    ,
+    ['Char']        = object('char', (1 - m.S',{}[]*?/\\')^1),
+    ['FSymbol']     = object('**', m.P'**'),
+    ['Range']       = m.P'[' * m.Ct(m.V'RangeUnit'^0) * m.P']'^-1,
+    ['RangeUnit']   = m.Ct(- m.P']' * m.C(m.P(1)) * (m.P'-' * - m.P']' * m.C(m.P(1)))^-1),
+}
 
 local mt = {}
 mt.__index = mt
 mt.__name = 'gitignore'
 
 function mt:addPattern(pat)
-    return self.parser:addPattern(pat)
+    if type(pat) ~= 'string' then
+        return
+    end
+    self.pattern[#self.pattern+1] = pat
+    if self.options.ignoreCase then
+        pat = pat:lower()
+    end
+    local states, err = parser:match(pat)
+    if not states then
+        self.errors[#self.errors+1] = {
+            pattern = pat,
+            message = err
+        }
+        return
+    end
+    for _, state in ipairs(states) do
+        if state.neg then
+            self.refused[#self.refused+1] = matcher(state)
+        else
+            self.passed[#self.passed+1] = matcher(state)
+        end
+    end
 end
 
 function mt:setOption(op, val)
-    return self.parser:setOption(op, val)
+    if val == nil then
+        val = true
+    end
+    self.options[op] = val
 end
 
 function mt:setMethod(key, func)
@@ -19,32 +84,64 @@ function mt:setMethod(key, func)
     self.method[key] = func
 end
 
-function mt:__call(path)
-    if self.method.type then
-        return self.parser(path, function (matcher, catch)
-            if matcher:isNeedDirectory() then
-                if #catch < #path then
-                    -- if path is 'a/b/c' and catch is 'a/b'
-                    -- then the catch must be a directory
-                    return true
-                else
-                    return self.method.type(self, catch) == 'directory'
-                end
-            end
-            return true
-        end)
+function mt:checkDirectory(catch, path, matcher)
+    if not self.method.type then
+        return true
+    end
+    if not matcher:isNeedDirectory() then
+        return true
+    end
+    if #catch < #path then
+        -- if path is 'a/b/c' and catch is 'a/b'
+        -- then the catch must be a directory
+        return true
     else
-        return self.parser(path)
+        return self.method.type(self, catch) == 'directory'
     end
 end
 
+function mt:__call(path)
+    if self.options.ignoreCase then
+        path = path:lower()
+    end
+    for _, refused in ipairs(self.refused) do
+        local catch = refused(path)
+        if catch and self:checkDirectory(catch, path, refused) then
+            return false
+        end
+    end
+    for _, passed in ipairs(self.passed) do
+        local catch = passed(path)
+        if catch and self:checkDirectory(catch, path, passed) then
+            return true
+        end
+    end
+    return false
+end
+
 return function (pattern, options, methods)
-    local parser = glob(pattern, options)
     local self = setmetatable({
-        parser = parser,
-        errors = parser.errors,
-        method = {},
+        pattern = {},
+        options = {},
+        passed  = {},
+        refused = {},
+        errors  = {},
+        method  = {},
     }, mt)
+
+    if type(pattern) == 'table' then
+        for _, pat in ipairs(pattern) do
+            self:addPattern(pat)
+        end
+    else
+        self:addPattern(pattern)
+    end
+
+    if type(options) == 'table' then
+        for op, val in pairs(options) do
+            self:setOption(op, val)
+        end
+    end
 
     if type(methods) == 'table' then
         for key, func in pairs(methods) do

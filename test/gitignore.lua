@@ -64,3 +64,39 @@ test 'src/'
     end)
     : ok 'src/a'
     : no 'a/src'
+do return end
+test {'aaa', '!aaa/bbb'}
+    : tp(function (_, path)
+        if path == 'aaa' then
+            return 'directory'
+        else
+            return 'file'
+        end
+    end)
+    : ok 'aaa'
+    : ok 'aaa/bbb'
+    : ok 'aaa/ccc'
+
+test {'aaa/', '!aaa/bbb'}
+    : tp(function (_, path)
+        if path == 'aaa' then
+            return 'directory'
+        else
+            return 'file'
+        end
+    end)
+    : ok 'aaa'
+    : ok 'aaa/bbb'
+    : ok 'aaa/ccc'
+
+test {'aaa/*', '!aaa/bbb'}
+    : tp(function (_, path)
+        if path == 'aaa' then
+            return 'directory'
+        else
+            return 'file'
+        end
+    end)
+    : no 'aaa'
+    : no 'aaa/bbb'
+    : ok 'aaa/ccc'

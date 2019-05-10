@@ -77,27 +77,18 @@ function mt:setOption(op, val)
     self.options[op] = val
 end
 
-function mt:__call(path, watcher)
+function mt:__call(path)
     if self.options.ignoreCase then
         path = path:lower()
     end
-    if type(watcher) ~= 'function' then
-        watcher = nil
-    end
     for _, refused in ipairs(self.refused) do
-        local catch = refused(path)
-        if catch then
-            if not watcher or watcher(refused, catch) == true then
-                return false
-            end
+        if refused(path) then
+            return false
         end
     end
     for _, passed in ipairs(self.passed) do
-        local catch = passed(path)
-        if catch then
-            if not watcher or watcher(passed, catch) == true then
-                return true
-            end
+        if passed(path) then
+            return true
         end
     end
     return false
@@ -111,6 +102,7 @@ return function (pattern, options)
         refused = {},
         errors  = {},
     }, mt)
+
     if type(pattern) == 'table' then
         for _, pat in ipairs(pattern) do
             self:addPattern(pat)
@@ -118,6 +110,7 @@ return function (pattern, options)
     else
         self:addPattern(pattern)
     end
+
     if type(options) == 'table' then
         for op, val in pairs(options) do
             self:setOption(op, val)
