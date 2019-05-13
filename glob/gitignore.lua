@@ -41,6 +41,7 @@ local parser = m.P {
     ['RangeUnit']   = m.Ct(- m.P']' * m.C(m.P(1)) * (m.P'-' * - m.P']' * m.C(m.P(1)))^-1),
 }
 
+---@class gitignore
 local mt = {}
 mt.__index = mt
 mt.__name = 'gitignore'
@@ -82,7 +83,7 @@ end
 
 function mt:callInterface(name, ...)
     local func = self.interface[name]
-    return func(self, ...)
+    return func(...)
 end
 
 function mt:hasInterface(name)
@@ -90,7 +91,7 @@ function mt:hasInterface(name)
 end
 
 function mt:checkDirectory(catch, path, matcher)
-    if not self:hasInterface 'fileType' then
+    if not self:hasInterface 'type' then
         return true
     end
     if not matcher:isNeedDirectory() then
@@ -101,7 +102,7 @@ function mt:checkDirectory(catch, path, matcher)
         -- then the catch must be a directory
         return true
     else
-        return self:callInterface('fileType', path) == 'directory'
+        return self:callInterface('type', path) == 'directory'
     end
 end
 
@@ -138,12 +139,12 @@ end
 
 function mt:scan(callback)
     local list = {}
-    local result = self:callInterface('listFile', '')
+    local result = self:callInterface('list', '')
     if type(result) ~= 'table' then
         return
     end
     for _, path in ipairs(result) do
-        list[#list+1] = result
+        list[#list+1] = path
     end
     while #list > 0 do
         local current = list[#list]
@@ -151,6 +152,22 @@ function mt:scan(callback)
             break
         end
         list[#list] = nil
+        if not self:simpleMatch(current) then
+            local fileType = self:callInterface('type', current)
+            if fileType == 'file' then
+                callback(current)
+            elseif fileType == 'directory' then
+                local result = self:callInterface('list', current)
+                if type(result) == 'table' then
+                    for _, path in ipairs(result) do
+                        local filename = path:match '([^/\\]+)[/\\]*$'
+                        if filename then
+                            list[#list+1] = current .. '\\' .. filename
+                        end
+                    end
+                end
+            end
+        end
     end
 end
 

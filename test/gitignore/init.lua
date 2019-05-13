@@ -1,1 +1,2 @@
-require 'test.gitignore.single'
+require 'test.gitignore.match'
+require 'test.gitignore.scan'
