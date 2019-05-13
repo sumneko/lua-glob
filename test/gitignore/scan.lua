@@ -189,3 +189,14 @@ src/*
         ['d.dll'] = true,
     }
 }
+
+test [[
+*.lua
+!/*.lua
+]]
+{
+    ['a.lua'] = true,
+    ['publish'] = {
+        ['a.lua'] = false,
+    }
+}
