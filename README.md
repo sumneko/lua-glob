@@ -83,7 +83,7 @@ local interface = {
         end
         local childs = {}
         for child in fs.path(path):list_directory() do
-            childs[#childs+1] = child
+            childs[#childs+1] = child:string()
         end
         return childs
     end,
