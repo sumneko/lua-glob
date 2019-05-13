@@ -138,10 +138,14 @@ function mt:finishMatch(path)
 end
 
 function mt:scan(callback)
+    local files = {}
+    if type(callback) ~= 'function' then
+        callback = nil
+    end
     local list = {}
     local result = self:callInterface('list', '')
     if type(result) ~= 'table' then
-        return
+        return files
     end
     for _, path in ipairs(result) do
         list[#list+1] = path
@@ -155,7 +159,10 @@ function mt:scan(callback)
         if not self:simpleMatch(current) then
             local fileType = self:callInterface('type', current)
             if fileType == 'file' then
-                callback(current)
+                if callback then
+                    callback(current)
+                end
+                files[#files+1] = current
             elseif fileType == 'directory' then
                 local result = self:callInterface('list', current)
                 if type(result) == 'table' then
@@ -169,6 +176,8 @@ function mt:scan(callback)
             end
         end
     end
+    table.sort(files)
+    return files
 end
 
 function mt:__call(path)
