@@ -123,10 +123,69 @@ test [[
         ['a.dll'] = false,
         ['b.dll'] = false,
     },
-    ['scr'] = {
+    ['src'] = {
         ['a.lua'] = true,
         ['b.lua'] = true,
         ['c.lua'] = true,
         ['d.dll'] = false,
+    }
+}
+
+test [[
+*.*
+!*.lua
+]]
+{
+    ['a.lua'] = true,
+    ['b.lua'] = true,
+    ['c.dll'] = false,
+    ['bin'] = {
+        ['a.dll'] = false,
+        ['b.dll'] = false,
+    },
+    ['src'] = {
+        ['a.lua'] = true,
+        ['b.lua'] = true,
+        ['c.lua'] = true,
+        ['d.dll'] = false,
+    }
+}
+
+test [[
+/*.dll
+]]
+{
+    ['a.lua'] = true,
+    ['b.lua'] = true,
+    ['c.dll'] = false,
+    ['bin'] = {
+        ['a.dll'] = true,
+        ['b.dll'] = true,
+    },
+    ['src'] = {
+        ['a.lua'] = true,
+        ['b.lua'] = true,
+        ['c.lua'] = true,
+        ['d.dll'] = true,
+    }
+}
+
+test [[
+src/*
+!*.dll
+]]
+{
+    ['a.lua'] = true,
+    ['b.lua'] = true,
+    ['c.dll'] = true,
+    ['bin'] = {
+        ['a.dll'] = true,
+        ['b.dll'] = true,
+    },
+    ['src'] = {
+        ['a.lua'] = false,
+        ['b.lua'] = false,
+        ['c.lua'] = false,
+        ['d.dll'] = true,
     }
 }
