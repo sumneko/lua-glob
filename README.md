@@ -41,14 +41,15 @@ parser 'Src/lpeg.dll' --> false
 ```
 
 ### scan
-------- work space -------
+Work space
+```
 main.lua
 utility.lua
 src
 |---test.lua
 |---bee.dll
 |---lua.dll
---------------------------
+```
 
 ```lua
 local glob = require 'glob'
