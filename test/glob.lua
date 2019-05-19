@@ -182,6 +182,13 @@ test 'example.[0-9a-z]'
     : no 'example.'
     : no 'example.10'
 
+test 'example.[0-9az]'
+    : ok 'example.0'
+    : ok 'example.5'
+    : no 'example.a'
+    : no 'example.'
+    : no 'example.10'
+
 test {'src', '!*.dll'}
     : op 'ignoreCase'
     : ok 'Src/main.lua'
