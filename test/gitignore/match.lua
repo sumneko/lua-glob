@@ -35,6 +35,22 @@ test 'src/'
     : ok 'src/a'
     : ok 'a/src'
 
+test 'example.[0-9az]'
+    : ok 'example.0'
+    : ok 'example.5'
+    : ok 'example.a'
+    : ok 'example.z'
+    : no 'example.'
+    : no 'example.10'
+
+test 'example.[a0-9z]'
+    : ok 'example.0'
+    : ok 'example.5'
+    : ok 'example.a'
+    : ok 'example.z'
+    : no 'example.'
+    : no 'example.10'
+
 test 'src/'
     : ft(function (path)
         if path == 'a/src' then
