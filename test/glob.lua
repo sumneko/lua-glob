@@ -193,3 +193,11 @@ test {'src', '!*.dll'}
     : op 'ignoreCase'
     : ok 'Src/main.lua'
     : no 'Src/lpeg.dll'
+
+test 'example.\\[0-9az\\]'
+    : no 'example.0'
+    : no 'example.5'
+    : no 'example.a'
+    : no 'example.'
+    : no 'example.10'
+    : ok 'example.[0-9az]'

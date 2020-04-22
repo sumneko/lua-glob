@@ -51,6 +51,15 @@ test 'example.[a0-9z]'
     : no 'example.'
     : no 'example.10'
 
+test 'example.\\[a0-9z\\]'
+    : no 'example.0'
+    : no 'example.5'
+    : no 'example.a'
+    : no 'example.z'
+    : no 'example.'
+    : no 'example.10'
+    : ok 'example.[a0-9z]'
+
 test 'src/'
     : ft(function (path)
         if path == 'a/src' then
