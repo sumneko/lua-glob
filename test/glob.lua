@@ -201,3 +201,6 @@ test 'example.\\[0-9az\\]'
     : no 'example.'
     : no 'example.10'
     : ok 'example.[0-9az]'
+
+test '*.lua.txt'
+    : ok '/mnt/d/1.lua.txt'
