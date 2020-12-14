@@ -190,6 +190,7 @@ function mt:__call(path)
     if self.options.ignoreCase then
         path = path:lower()
     end
+    path = path:gsub('^[/\\]+', '')
     return self:finishMatch(path)
 end
 
