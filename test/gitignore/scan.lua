@@ -84,7 +84,7 @@ local function test(gitignore)
             if type(current) == 'table' then
                 local childs = {}
                 for name in pairs(current) do
-                    childs[#childs+1] = name
+                    childs[#childs+1] = path .. '/' .. name
                 end
                 table.sort(childs)
                 return childs
