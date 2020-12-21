@@ -93,7 +93,7 @@ local function test(gitignore)
         end)
 
         local result = {}
-        session:scan(function (path)
+        session:scan('', function (path)
             local current = result
             local names = splitPath(path)
             for i = 1, #names-1 do
