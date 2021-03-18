@@ -36,8 +36,8 @@ local function splitPath(path)
     return result
 end
 
-local function getPath(root, path)
-    local current = root
+local function getPath(dir, path)
+    local current = dir
     for name in path:gmatch '[^/\\]+' do
         current = current[name]
         if current == nil then
@@ -62,16 +62,19 @@ local function buildExpect(root)
     return result
 end
 
-local function test(gitignore)
-    return function (root)
+local function test(gitignore, root)
+    return function (dir)
         local pattern = {}
         for line in gitignore:gmatch '[^\r\n]+' do
             pattern[#pattern+1] = line
         end
         ---@type gitignore
         local session = glob.gitignore(pattern)
+        if root then
+            session:setOption('root', root)
+        end
         session:setInterface('type', function (path)
-            local current = getPath(root, path)
+            local current = getPath(dir, path)
             if type(current) == 'boolean' then
                 return 'file'
             elseif type(current) == 'table' then
@@ -80,11 +83,15 @@ local function test(gitignore)
             return nil
         end)
         session:setInterface('list', function (path)
-            local current = getPath(root, path)
+            local current = getPath(dir, path)
             if type(current) == 'table' then
                 local childs = {}
                 for name in pairs(current) do
-                    childs[#childs+1] = path .. '/' .. name
+                    if path == '' then
+                        childs[#childs+1] = name
+                    else
+                        childs[#childs+1] = path .. '/' .. name
+                    end
                 end
                 table.sort(childs)
                 return childs
@@ -93,7 +100,7 @@ local function test(gitignore)
         end)
 
         local result = {}
-        session:scan('', function (path)
+        session:scan(root or '', function (path)
             local current = result
             local names = splitPath(path)
             for i = 1, #names-1 do
@@ -107,7 +114,7 @@ local function test(gitignore)
             current[name] = true
         end)
 
-        local expect = buildExpect(root)
+        local expect = buildExpect(dir)
         assert(eq(expect, result))
     end
 end
@@ -198,5 +205,18 @@ test [[
     ['a.lua'] = true,
     ['publish'] = {
         ['a.lua'] = false,
+    }
+}
+
+test([[
+/*
+!/usr
+]], 'root')
+{
+    ['root'] = {
+        ['a.lua'] = false,
+        ['usr'] = {
+            ['a.lua'] = true,
+        }
     }
 }
