@@ -232,8 +232,12 @@ XXX/YYY
             ['a.lua'] = true,
             ['b.lua'] = true,
             ['YYY'] = {
+                ['a.lua'] = false,
                 ['b.lua'] = false,
-                ['c.lua'] = false,
+                ['ZZZ'] = {
+                    ['a.lua'] = false,
+                    ['b.lua'] = false,
+                }
             },
         }
     }
