@@ -220,3 +220,21 @@ test([[
         }
     }
 }
+
+test([[
+XXX/YYY
+]], 'root')
+{
+    ['root'] = {
+        ['a.lua'] = true,
+        ['b.lua'] = true,
+        ['XXX'] = {
+            ['a.lua'] = true,
+            ['b.lua'] = true,
+            ['YYY'] = {
+                ['b.lua'] = false,
+                ['c.lua'] = false,
+            },
+        }
+    }
+}
