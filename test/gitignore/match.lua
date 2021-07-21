@@ -120,3 +120,14 @@ test {'aaa/*', '!aaa/bbb'}
     : no 'aaa'
     : no 'aaa/bbb'
     : ok 'aaa/ccc'
+
+test {'/*', '!/usr'}
+    : ft(function (path)
+        if path == 'usr' then
+            return 'directory'
+        else
+            return 'file'
+        end
+    end)
+    : ok 'a.lua'
+    : no 'usr/a.lua'
