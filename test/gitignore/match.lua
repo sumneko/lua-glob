@@ -131,3 +131,7 @@ test {'/*', '!/usr'}
     end)
     : ok 'a.lua'
     : no 'usr/a.lua'
+
+test '/'
+    : no '1'
+    : no '2/1'
