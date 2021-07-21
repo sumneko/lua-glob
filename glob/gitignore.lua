@@ -191,9 +191,7 @@ function mt:scan(path, callback)
             end
         end
     end
-    if not self:simpleMatch(path) then
-        check(path)
-    end
+    check(path)
     while #list > 0 do
         local current = list[#list]
         if not current then
