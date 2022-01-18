@@ -135,3 +135,9 @@ test {'/*', '!/usr'}
 test '/'
     : no '1'
     : no '2/1'
+
+test 'abc'
+    : ok 'f/abc/a.lua'
+
+test 'abc'
+    : ok '[f]/abc/a.lua'
