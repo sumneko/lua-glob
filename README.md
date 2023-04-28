@@ -4,6 +4,8 @@
 
 Require [LPegLabel](https://github.com/sqmedeiros/lpeglabel)
 
+Install: copy "glob/" directory to your project, or use luarocks `luarocks install lua-glob --server=https://luarocks.org/dev`
+
 ## glob
 ```lua
 local glob = require 'glob'
