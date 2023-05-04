@@ -103,7 +103,7 @@ function mt:range(exp, state, index)
             ranges[#ranges+1] = range[1] .. range[2]
         end
     end
-    local current = m.S(table.concat(selects)) + m.R(table.unpack(ranges))
+    local current = m.S(table.concat(selects)) + m.R((table.unpack or _G.unpack)(ranges))
     if after then
         return current * after
     else

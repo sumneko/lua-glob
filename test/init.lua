@@ -1,3 +1,5 @@
+package.path = '?/init.lua;' .. package.path
+
 print 'Test start.'
 
 require 'test.utility'

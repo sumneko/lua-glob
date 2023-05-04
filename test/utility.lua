@@ -3,10 +3,17 @@ local stringRep = string.rep
 local type = type
 local pairs = pairs
 local ipairs = ipairs
-local math_type = math.type
 local next = next
 local rawset = rawset
-local move = table.move
+local move = table.move or function(a1, f, e, t, a2)
+    a2 = a2 or a1
+    if e >= f then
+        local m, n, d = 0, e-f, 1
+        if t > f then m, n, d = n, m, -1 end
+        for i = m, n, d do a2[t+i] = a1[f+i] end
+    end
+    return a2
+end
 local setmetatable = setmetatable
 local tableSort = table.sort
 local mathType = math.type
