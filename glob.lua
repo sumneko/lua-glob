@@ -19,17 +19,17 @@ local function parsePatternRangePart(pat, start)
             return pack, index
         end
         if char == '\\' then
+            char = pat:sub(index, index)
             index = index + 1
+        end
+        local peek = pat:sub(index, index)
+        if peek == '-' then
+            local stop = pat:sub(index + 1, index + 1)
+            pack.ranges[#pack.ranges+1] = { char, stop }
+            index = index + 2
         else
-            local peek = pat:sub(index, index)
-            if peek == '-' then
-                local stop = pat:sub(index + 1, index + 1)
-                pack.ranges[#pack.ranges+1] = { char, stop }
-                index = index + 2
-            else
-                pack.singles[#pack.singles+1] = char
-                index = index + 1
-            end
+            pack.singles[#pack.singles+1] = char
+            index = index + 1
         end
     end
     return pack, index
@@ -89,8 +89,7 @@ local function parsePatternBracePart(pat, start)
             end
             buf = ''
         elseif char == '\\' then
-            local nextChar = pat:sub(index, index)
-            buf = buf .. nextChar
+            buf = buf .. pat:sub(index, index)
             index = index + 1
         else
             buf = buf .. char
@@ -150,7 +149,8 @@ function M:parsePattern(pat)
         elseif char == '{' then
             result[#result+1], last = parsePatternBracePart(pat, start + 1)
         elseif char == '\\' then
-            last = start + 1
+            result[#result+1] = pat:sub(start + 1, start + 1)
+            last = start + 2
         elseif char == ',' or char == '}' then
             return result, start
         end
