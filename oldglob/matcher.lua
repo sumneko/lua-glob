@@ -142,7 +142,7 @@ function mt:isNegative()
     return self.state.neg == true
 end
 
-function mt:__call(path)
+function mt:__call(path, options)
     return self.matcher:match(path)
 end
 

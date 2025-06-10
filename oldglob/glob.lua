@@ -54,9 +54,6 @@ function mt:addPattern(pat)
         return
     end
     self.pattern[#self.pattern+1] = pat
-    if self.options.ignoreCase then
-        pat = pat:lower()
-    end
     local states, err = parser:match(pat)
     if not states then
         self.errors[#self.errors+1] = {
@@ -87,12 +84,12 @@ function mt:__call(path)
     end
     path = path:gsub('^[/\\]+', '')
     for _, refused in ipairs(self.refused) do
-        if refused(path) then
+        if refused(path, self.options) then
             return false
         end
     end
     for _, passed in ipairs(self.passed) do
-        if passed(path) then
+        if passed(path, self.options) then
             return true
         end
     end

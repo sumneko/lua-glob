@@ -123,7 +123,7 @@ test 'a**/b'
     : no 'a'
     : no 'b'
 
-test '{a, b}'
+test '{a,b}'
     : ok 'a'
     : ok 'b'
     : ok 'c/a'
@@ -207,3 +207,25 @@ test '*.lua.txt'
 
 test '*.lua.txt'
     : ok [[D:\github\test\a.lua.txt]]
+
+-- test {
+--     'src',
+--     '!*.dll',
+--     'lua/hello.lua',
+--     'lua/PUB_*.lua',
+--     'lua/PUB_',
+--     'lua/PUB_*',
+--     'aaa/bbb_ccc.lua',
+--     'lua/pub2_*.lua',
+--     'aaBBccDD.lua',
+-- }
+--     : op 'ignoreCase'
+--     : ok 'Src/main.lua'
+--     : no 'Src/lpeg.dll'
+--     : ok 'lua/hello.lua'
+--     : ok 'lua/PUB_Settings.lua'
+--     : ok 'lua/PUB_'
+--     : ok 'lua/PUB_111'
+--     : ok 'aaa/bbb_ccc.lua'
+--     : ok 'lua/pub2_bbb.lua'
+--     : ok 'aaBBccDD.lua'

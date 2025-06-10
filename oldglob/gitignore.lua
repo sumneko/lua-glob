@@ -58,9 +58,6 @@ function mt:addPattern(pat)
         return
     end
     self.pattern[#self.pattern+1] = pat
-    if self.options.ignoreCase then
-        pat = pat:lower()
-    end
     local states, err = parser:match(pat)
     if not states then
         self.errors[#self.errors+1] = {
