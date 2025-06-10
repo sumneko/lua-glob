@@ -106,6 +106,7 @@ function M:parsePattern(pat)
         kind = 'base',
     }
 
+    pat = pat:gsub('^%s+', ''):gsub('%s+$', '')
     local last = 1
     if pat:sub(last, last) == '!' then
         result.refused = true
@@ -119,9 +120,11 @@ function M:parsePattern(pat)
         last = last + 2
     end
     while true do
-        local start, _, char = pat:find('([%*%?%[%/%\\%{%,])', last)
+        local start, _, char = pat:find('([%*%?%[%/%\\%{%,%}])', last)
         if not start then
-            result[#result+1] = pat:sub(last)
+            if last <= #pat then
+                result[#result+1] = pat:sub(last)
+            end
             return result, #pat
         end
         if start > last then
@@ -132,6 +135,9 @@ function M:parsePattern(pat)
                 -- **
                 result[#result+1] = '**'
                 last = start + 2
+                if pat:sub(last, last) == '/' then
+                    last = last + 1
+                end
             else
                 result[#result+1] = '*'
                 last = start + 1
@@ -145,7 +151,7 @@ function M:parsePattern(pat)
             result[#result+1], last = parsePatternBracePart(pat, start + 1)
         elseif char == '\\' then
             last = start + 1
-        elseif char == ',' then
+        elseif char == ',' or char == '}' then
             return result, start
         end
     end
@@ -153,7 +159,24 @@ end
 
 ---@param pat string
 function M:addPattern(pat)
-    self.patterns[#self.patterns+1] = self:parsePattern(pat)
+    if pat:sub(1, 1) == '{' then
+        pat = pat:sub(2)
+        while true do
+            local pattern, pos = self:parsePattern(pat)
+            if not pattern then
+                break
+            end
+            self.patterns[#self.patterns+1] = pattern
+            local char = pat:sub(pos, pos)
+            if char == ',' then
+                pat = pat:sub(pos + 1)
+            else
+                break
+            end
+        end
+    else
+        self.patterns[#self.patterns+1] = self:parsePattern(pat)
+    end
 end
 
 ---@param op string
@@ -206,14 +229,65 @@ function M:checkPatternByBrace(path, pat)
 end
 
 ---@private
+function M:checkPatternByRange(path, pat)
+    local ignoreCase = self.options.ignoreCase
+    local char = path:sub(1, 1)
+    for _, range in ipairs(pat.ranges) do
+        local s, e = range[1], range[2]
+        if ignoreCase then
+            s = s:lower()
+            e = e:lower()
+        end
+        if char >= s and char <= e then
+            return true, path:sub(2)
+        end
+    end
+    for _, single in ipairs(pat.singles) do
+        if ignoreCase then
+            single = single:lower()
+        end
+        if char == single then
+            return true, path:sub(2)
+        end
+    end
+    return false
+end
+
+---@private
 function M:checkPatternWord(path, pattern, patIndex)
     local ignoreCase = self.options.ignoreCase
     for i = patIndex, #pattern do
-        if path == '' then
-            return true, i
-        end
         local pat = pattern[i]
-        if type(pat) == 'string' then
+        if pat == '*' then
+            if path == nil or path == '' then
+                return true, i + 1
+            end
+            local newPath = path
+            while true do
+                local suc, newIndex = self:checkPatternWord(newPath, pattern, i + 1)
+                if suc then
+                    return true, newIndex
+                end
+                if newPath == '' then
+                    return false
+                end
+                newPath = newPath:sub(2)
+            end
+            return false
+        elseif pat == '?' then
+            if path == nil or path == '' then
+                return false
+            end
+            path = path:sub(2)
+        elseif pat == '/' or pat == '**' then
+            if path == nil or path == '' then
+                return true, i
+            else
+                return false
+            end
+        elseif path == nil then
+            return false
+        elseif type(pat) == 'string' then
             if ignoreCase then
                 pat = pat:lower()
             end
@@ -221,17 +295,21 @@ function M:checkPatternWord(path, pattern, patIndex)
                 return false
             end
             path = path:sub(#pat + 1)
-        else
-            if pat.kind == 'brace' then
-                local ok, leftPath = self:checkPatternByBrace(path, pat)
-                if not ok then
-                    return false
-                end
-                path = leftPath
+        elseif pat.kind == 'brace' then
+            local ok, leftPath = self:checkPatternByBrace(path, pat)
+            if not ok then
+                return false
             end
+            path = leftPath
+        elseif pat.kind == 'range' then
+            local ok, leftPath = self:checkPatternByRange(path, pat)
+            if not ok then
+                return false
+            end
+            path = leftPath
         end
     end
-    if path == '' then
+    if path == nil or path == '' then
         return true, #pattern + 1
     end
     return false
@@ -244,11 +322,11 @@ function M:checkPatternSlice(paths, pathIndex, pattern, patIndex)
     if pat == nil then
         return true
     end
-    if path == nil and pat ~= nil then
-        return false
+    if path == nil and pat == nil then
+        return true
     end
     if pat == '/' then
-        return self:checkPatternSlice(paths, pathIndex, pattern, patIndex + 1)
+        return self:checkPatternSlice(paths, pathIndex + 1, pattern, patIndex + 1)
     end
     if pat == '**' then
         for i = pathIndex, #paths do
@@ -262,7 +340,7 @@ function M:checkPatternSlice(paths, pathIndex, pattern, patIndex)
     if not ok then
         return false
     end
-    return self:checkPatternSlice(paths, pathIndex + 1, pattern, newIndex)
+    return self:checkPatternSlice(paths, pathIndex, pattern, newIndex)
 end
 
 ---@private

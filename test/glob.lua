@@ -185,7 +185,7 @@ test 'example.[0-9a-z]'
 test 'example.[0-9az]'
     : ok 'example.0'
     : ok 'example.5'
-    : no 'example.a'
+    : ok 'example.a'
     : no 'example.'
     : no 'example.10'
 
