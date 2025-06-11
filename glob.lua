@@ -3,9 +3,12 @@ local M = {}
 M.__index = M
 
 ---@class Glob.Options
----@field ignoreCase boolean
+---@field ignoreCase? boolean
+---@field asGitIgnore? boolean
 
 ---@class Glob.Interface
+---@field type? fun(path: string):('file'|'directory'|nil)
+---@field list? fun(path: string):string[]?
 
 local function parsePatternRangePart(pat, start)
     local pack = {
@@ -288,7 +291,10 @@ function M:checkPatternWord(path, pattern, patIndex)
     for i = patIndex, #pattern.symbols do
         local pat = pattern.symbols[i]
         if pat == '*' then
-            if path == nil or path == '' then
+            if path == nil then
+                return false
+            end
+            if path == '' then
                 return true, i + 1
             end
             local newPath = path
@@ -345,6 +351,7 @@ function M:checkPatternWord(path, pattern, patIndex)
 end
 
 ---@private
+---@return boolean
 function M:checkPatternSlice(paths, pathIndex, pattern, patIndex)
     local path = paths[pathIndex]
     local pat  = pattern.symbols[patIndex]
@@ -387,8 +394,12 @@ end
 ---@private
 ---@param paths string[]
 ---@param pattern table
+---@return boolean
 function M:checkPattern(paths, pattern)
     if pattern.kind == 'base' then
+        if #pattern.symbols == 0 then
+            return false
+        end
         if pattern.root then
             return self:checkPatternSlice(paths, 1, pattern, 1)
         else
@@ -401,13 +412,13 @@ function M:checkPattern(paths, pattern)
         end
     elseif pattern.kind == 'or' then
         for _, child in ipairs(pattern.childs) do
-            local ok = self:checkPattern(paths, child)
-            if ok then
+            if self:checkPattern(paths, child) then
                 return true
             end
         end
         return false
     end
+    return false
 end
 
 ---@param path string
@@ -417,25 +428,39 @@ function M:check(path)
         path = path:lower()
     end
 
-    local paths = {}
-    for p in path:gmatch('[^/\\]+') do
-        paths[#paths+1] = p
-    end
-
-    local ok = false
-    for _, pattern in ipairs(self.patterns) do
-        if ok and pattern.refused then
-            if self:checkPattern(paths, pattern) then
-                ok = false
-            end
-        elseif not ok and not pattern.refused then
-            if self:checkPattern(paths, pattern) then
-                ok = true
+    local function check(paths)
+        local ok = false
+        for _, pattern in ipairs(self.patterns) do
+            if ok and pattern.refused then
+                if self:checkPattern(paths, pattern) then
+                    ok = false
+                end
+            elseif not ok and not pattern.refused then
+                if self:checkPattern(paths, pattern) then
+                    ok = true
+                end
             end
         end
+        return ok
     end
 
-    return ok
+    if self.options.asGitIgnore then
+        local paths = {}
+        for p in path:gmatch('[^/\\]+') do
+            paths[#paths+1] = p
+            if check(paths) then
+                return true
+            end
+        end
+        return false
+    else
+        local paths = {}
+        for p in path:gmatch('[^/\\]+') do
+            paths[#paths+1] = p
+        end
+
+        return check(paths)
+    end
 end
 
 function M:__call(...)
@@ -450,7 +475,9 @@ local function createGlob(pattern, options, interface)
     ---@class Glob
     local glob = setmetatable({
         patterns = {},
+        ---@type Glob.Options
         options = {},
+        ---@type Glob.Interface
         interface = {},
     }, M)
 
@@ -477,7 +504,17 @@ local function createGlob(pattern, options, interface)
     return glob
 end
 
+---@param pattern string|string[]
+---@param options Glob.Options
+---@param interface Glob.Interface
+---@return Glob
+local function createGitIgnore(pattern, options, interface)
+    local glob = createGlob(pattern, options, interface)
+    glob:setOption('asGitIgnore', true)
+    return glob
+end
+
 return {
     glob = createGlob,
-    gitignore = createGlob,
+    gitignore = createGitIgnore,
 }
