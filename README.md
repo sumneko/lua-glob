@@ -2,8 +2,6 @@
 
 [![Build status](https://ci.appveyor.com/api/projects/status/2u02fyusb1aw5rs9?svg=true)](https://ci.appveyor.com/project/sumneko/lua-glob)
 
-Require [LPegLabel](https://github.com/sqmedeiros/lpeglabel)
-
 Install: copy "glob/" directory to your project, or use luarocks `luarocks install lua-glob --server=https://luarocks.org/dev`
 
 ## glob

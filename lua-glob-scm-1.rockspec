@@ -12,15 +12,11 @@ description = {
 }
 dependencies = {
    "lua >= 5.1",
-   "lpeglabel ~> 1",
 }
 build = {
    type = "builtin",
    modules = {
-      ["glob"] = "glob/init.lua",
-      ["glob.glob"] = "glob/glob.lua",
-      ["glob.gitignore"] = "glob/gitignore.lua",
-      ["glob.matcher"] = "glob/matcher.lua",
+      ["glob"] = "glob.lua",
    },
 }
 test = {
