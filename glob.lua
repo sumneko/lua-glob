@@ -421,6 +421,24 @@ function M:checkPattern(paths, pattern)
     return false
 end
 
+---@param paths string[]
+---@return 'accepted'|'refused'|'unknown'
+function M:status(paths)
+    local status = 'unknown'
+    for _, pattern in ipairs(self.patterns) do
+        if status ~= 'refused' and pattern.refused then
+            if self:checkPattern(paths, pattern) then
+                status = 'refused'
+            end
+        elseif status ~= 'accepted' and not pattern.refused then
+            if self:checkPattern(paths, pattern) then
+                status = 'accepted'
+            end
+        end
+    end
+    return status
+end
+
 ---@param path string
 ---@return boolean
 function M:check(path)
@@ -428,28 +446,15 @@ function M:check(path)
         path = path:lower()
     end
 
-    local function check(paths)
-        local ok = false
-        for _, pattern in ipairs(self.patterns) do
-            if ok and pattern.refused then
-                if self:checkPattern(paths, pattern) then
-                    ok = false
-                end
-            elseif not ok and not pattern.refused then
-                if self:checkPattern(paths, pattern) then
-                    ok = true
-                end
-            end
-        end
-        return ok
-    end
-
     if self.options.asGitIgnore then
         local paths = {}
         for p in path:gmatch('[^/\\]+') do
             paths[#paths+1] = p
-            if check(paths) then
+            local status = self:status(paths)
+            if status == 'accepted' then
                 return true
+            elseif status == 'refused' then
+                return false
             end
         end
         return false
@@ -459,8 +464,54 @@ function M:check(path)
             paths[#paths+1] = p
         end
 
-        return check(paths)
+        return self:status(paths) == 'accepted'
     end
+end
+
+local function toPaths(path, ignoreCase)
+    if ignoreCase then
+        path = path:lower()
+    end
+    local paths = {}
+    for p in path:gmatch('[^/\\]+') do
+        paths[#paths+1] = p
+    end
+    return paths
+end
+
+---@param root string
+---@param callback fun(path: string)
+function M:scan(root, callback)
+
+    local function check(path)
+        if #path ~= root and self:status(toPaths(path, self.options.ignoreCase)) == 'accepted' then
+            return
+        end
+        local ftype
+        if #path == root then
+            ftype = 'directory'
+        else
+            ftype = self.interface.type and self.interface.type(path) or nil
+        end
+        if not ftype then
+            return
+        end
+        if ftype == 'file' then
+            callback(path)
+            return
+        end
+        if ftype == 'directory' then
+            local files = self.interface.list and self.interface.list(path) or nil
+            if type(files) ~= 'table' then
+                return
+            end
+            for _, file in ipairs(files) do
+                check(file)
+            end
+        end
+    end
+
+    check(root)
 end
 
 function M:__call(...)
