@@ -208,6 +208,23 @@ test '*.lua.txt'
 test '*.lua.txt'
     : ok [[D:\github\test\a.lua.txt]]
 
+test '{a, !a/b}'
+    : ok 'a'
+    : ok 'a/b'
+
+test 'a{1..100}'
+    : ok 'a1'
+    : ok 'a2'
+    : ok 'a100'
+    : no 'a0'
+    : no 'a101'
+
+test 'a{a,b,c}'
+    : ok 'aa'
+    : ok 'ab'
+    : ok 'ac'
+    : no 'a'
+
 test {
     'src',
     '!*.dll',

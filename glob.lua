@@ -5,6 +5,8 @@ M.__index = M
 ---@class Glob.Options
 ---@field ignoreCase boolean
 
+---@class Glob.Interface
+
 local function parsePatternRangePart(pat, start)
     local pack = {
         kind = 'range',
@@ -29,7 +31,6 @@ local function parsePatternRangePart(pat, start)
             index = index + 2
         else
             pack.singles[#pack.singles+1] = char
-            index = index + 1
         end
     end
     return pack, index
@@ -99,10 +100,42 @@ local function parsePatternBracePart(pat, start)
 end
 
 ---@private
+function M:parsePatternOr(pat)
+    local result = {
+        kind = 'or',
+        childs = {},
+    }
+
+    pat = pat:sub(2)
+    while true do
+        local pattern, pos = self:parsePattern(pat)
+        if not pattern then
+            break
+        end
+        result.childs[#result.childs+1] = pattern
+        local char = pat:sub(pos, pos)
+        if char == ',' then
+            pat = pat:sub(pos + 1)
+        elseif char == '}' then
+            return result, pos + 1
+        else
+            return result, pos
+        end
+    end
+
+    return result, #pat + 1
+end
+
+---@private
 ---@param pat string
 function M:parsePattern(pat)
+    if pat:sub(1, 1) == '{' then
+        return self:parsePatternOr(pat)
+    end
+
     local result = {
         kind = 'base',
+        symbols = {},
     }
 
     pat = pat:gsub('^%s+', ''):gsub('%s+$', '')
@@ -118,38 +151,42 @@ function M:parsePattern(pat)
         result.root = true
         last = last + 2
     end
+    if pat:sub(-1) == '/' then
+        result.onlyDirectory = true
+        pat = pat:sub(1, #pat - 1)
+    end
     while true do
         local start, _, char = pat:find('([%*%?%[%/%\\%{%,%}])', last)
         if not start then
             if last <= #pat then
-                result[#result+1] = pat:sub(last)
+                result.symbols[#result.symbols+1] = pat:sub(last)
             end
             return result, #pat
         end
         if start > last then
-            result[#result+1] = pat:sub(last, start - 1)
+            result.symbols[#result.symbols+1] = pat:sub(last, start - 1)
         end
         if char == '*' then
             if pat:sub(start + 1, start + 1) == '*' then
                 -- **
-                result[#result+1] = '**'
+                result.symbols[#result.symbols+1] = '**'
                 last = start + 2
                 if pat:sub(last, last) == '/' then
                     last = last + 1
                 end
             else
-                result[#result+1] = '*'
+                result.symbols[#result.symbols+1] = '*'
                 last = start + 1
             end
         elseif char == '?' or char == '/' then
-            result[#result+1] = char
+            result.symbols[#result.symbols+1] = char
             last = start + 1
         elseif char == '[' then
-            result[#result+1], last = parsePatternRangePart(pat, start + 1)
+            result.symbols[#result.symbols+1], last = parsePatternRangePart(pat, start + 1)
         elseif char == '{' then
-            result[#result+1], last = parsePatternBracePart(pat, start + 1)
+            result.symbols[#result.symbols+1], last = parsePatternBracePart(pat, start + 1)
         elseif char == '\\' then
-            result[#result+1] = pat:sub(start + 1, start + 1)
+            result.symbols[#result.symbols+1] = pat:sub(start + 1, start + 1)
             last = start + 2
         elseif char == ',' or char == '}' then
             return result, start
@@ -159,24 +196,7 @@ end
 
 ---@param pat string
 function M:addPattern(pat)
-    if pat:sub(1, 1) == '{' then
-        pat = pat:sub(2)
-        while true do
-            local pattern, pos = self:parsePattern(pat)
-            if not pattern then
-                break
-            end
-            self.patterns[#self.patterns+1] = pattern
-            local char = pat:sub(pos, pos)
-            if char == ',' then
-                pat = pat:sub(pos + 1)
-            else
-                break
-            end
-        end
-    else
-        self.patterns[#self.patterns+1] = self:parsePattern(pat)
-    end
+    self.patterns[#self.patterns+1] = self:parsePattern(pat)
 end
 
 ---@param op string
@@ -186,6 +206,15 @@ function M:setOption(op, val)
         val = true
     end
     self.options[op] = val
+end
+
+---@overload fun(self: Glob, key: 'type', func: fun(path: string):('file'|'directory'|nil))
+---@overload fun(self: Glob, key: 'list', func: fun(path: string):string[]?)
+function M:setInterface(key, func)
+    if type(func) ~= 'function' then
+        return
+    end
+    self.interface[key] = func
 end
 
 ---@private
@@ -217,7 +246,7 @@ function M:checkPatternByBrace(path, pat)
     if pat.numberRange then
         local first = pat.numberRange[1]
         local last  = pat.numberRange[2]
-        for i = #tostring(first), #tostring(last) do
+        for i = #tostring(last), #tostring(first), -1 do
             local char = path:sub(1, i)
             local num = tonumber(char)
             if num and num >= first and num <= last then
@@ -256,8 +285,8 @@ end
 ---@private
 function M:checkPatternWord(path, pattern, patIndex)
     local ignoreCase = self.options.ignoreCase
-    for i = patIndex, #pattern do
-        local pat = pattern[i]
+    for i = patIndex, #pattern.symbols do
+        local pat = pattern.symbols[i]
         if pat == '*' then
             if path == nil or path == '' then
                 return true, i + 1
@@ -310,7 +339,7 @@ function M:checkPatternWord(path, pattern, patIndex)
         end
     end
     if path == nil or path == '' then
-        return true, #pattern + 1
+        return true, #pattern.symbols + 1
     end
     return false
 end
@@ -318,8 +347,20 @@ end
 ---@private
 function M:checkPatternSlice(paths, pathIndex, pattern, patIndex)
     local path = paths[pathIndex]
-    local pat  = pattern[patIndex]
+    local pat  = pattern.symbols[patIndex]
     if pat == nil then
+        if pattern.onlyDirectory then
+            if pathIndex < #paths then
+                return true
+            end
+            if self.interface.type then
+                local currentPath = table.concat(paths, '/', 1, pathIndex)
+                local fileType = self.interface.type(currentPath)
+                if fileType ~= 'directory' then
+                    return false
+                end
+            end
+        end
         return true
     end
     if path == nil and pat == nil then
@@ -344,19 +385,24 @@ function M:checkPatternSlice(paths, pathIndex, pattern, patIndex)
 end
 
 ---@private
----@param path string
+---@param paths string[]
 ---@param pattern table
-function M:checkPattern(path, pattern)
-    local paths = {}
-    for p in path:gmatch('[^/\\]+') do
-        paths[#paths+1] = p
-    end
-
-    if pattern.root then
-        return self:checkPatternSlice(paths, 1, pattern, 1)
-    else
-        for i = 1, #paths do
-            if self:checkPatternSlice(paths, i, pattern, 1) then
+function M:checkPattern(paths, pattern)
+    if pattern.kind == 'base' then
+        if pattern.root then
+            return self:checkPatternSlice(paths, 1, pattern, 1)
+        else
+            for i = 1, #paths do
+                if self:checkPatternSlice(paths, i, pattern, 1) then
+                    return true
+                end
+            end
+            return false
+        end
+    elseif pattern.kind == 'or' then
+        for _, child in ipairs(pattern.childs) do
+            local ok = self:checkPattern(paths, child)
+            if ok then
                 return true
             end
         end
@@ -371,15 +417,19 @@ function M:check(path)
         path = path:lower()
     end
 
+    local paths = {}
+    for p in path:gmatch('[^/\\]+') do
+        paths[#paths+1] = p
+    end
+
     local ok = false
     for _, pattern in ipairs(self.patterns) do
         if ok and pattern.refused then
-            if self:checkPattern(path, pattern) then
+            if self:checkPattern(paths, pattern) then
                 ok = false
             end
-        end
-        if not ok and not pattern.refused then
-            if self:checkPattern(path, pattern) then
+        elseif not ok and not pattern.refused then
+            if self:checkPattern(paths, pattern) then
                 ok = true
             end
         end
@@ -393,13 +443,15 @@ function M:__call(...)
 end
 
 ---@param pattern string|string[]
----@param options any
+---@param options Glob.Options
+---@param interface Glob.Interface
 ---@return Glob
-local function createGlob(pattern, options)
+local function createGlob(pattern, options, interface)
     ---@class Glob
     local glob = setmetatable({
         patterns = {},
         options = {},
+        interface = {},
     }, M)
 
     if type(pattern) == 'table' then
@@ -416,9 +468,16 @@ local function createGlob(pattern, options)
         end
     end
 
+    if type(interface) == 'table' then
+        for key, func in pairs(interface) do
+            glob:setInterface(key, func)
+        end
+    end
+
     return glob
 end
 
 return {
     glob = createGlob,
+    gitignore = createGlob,
 }
