@@ -5,6 +5,7 @@ M.__index = M
 ---@class Glob.Options
 ---@field ignoreCase? boolean
 ---@field asGitIgnore? boolean
+---@field root? string
 
 ---@class Glob.Interface
 ---@field type? fun(path: string):('file'|'directory'|nil)
@@ -445,6 +446,17 @@ function M:check(path)
     if self.options.ignoreCase then
         path = path:lower()
     end
+    local root = self.options.root
+    if root then
+        if self.options.ignoreCase then
+            root = root:lower()
+        end
+        if path:sub(1, #root) == root then
+            path = path:sub(#root + 1)
+        else
+            return false
+        end
+    end
 
     if self.options.asGitIgnore then
         local paths = {}
@@ -468,10 +480,23 @@ function M:check(path)
     end
 end
 
-local function toPaths(path, ignoreCase)
-    if ignoreCase then
+---@private
+function M:toPaths(path)
+    if self.options.ignoreCase then
         path = path:lower()
     end
+    local root = self.options.root
+    if root then
+        if self.options.ignoreCase then
+            root = root:lower()
+        end
+        if path:sub(1, #root) == root then
+            path = path:sub(#root + 1)
+        else
+            return {}
+        end
+    end
+
     local paths = {}
     for p in path:gmatch('[^/\\]+') do
         paths[#paths+1] = p
@@ -479,12 +504,18 @@ local function toPaths(path, ignoreCase)
     return paths
 end
 
----@param root string
----@param callback fun(path: string)
+---@param root? string
+---@param callback? fun(path: string)
 function M:scan(root, callback)
+    root = root or ''
+    local checked = {}
 
     local function check(path)
-        if #path ~= root and self:status(toPaths(path, self.options.ignoreCase)) == 'accepted' then
+        if checked[path] then
+            return
+        end
+        checked[path] = true
+        if #path ~= root and self:status(self:toPaths(path)) == 'accepted' then
             return
         end
         local ftype
@@ -497,7 +528,9 @@ function M:scan(root, callback)
             return
         end
         if ftype == 'file' then
-            callback(path)
+            if callback then
+                callback(path)
+            end
             return
         end
         if ftype == 'directory' then
@@ -518,9 +551,9 @@ function M:__call(...)
     return self:check(...)
 end
 
----@param pattern string|string[]
----@param options Glob.Options
----@param interface Glob.Interface
+---@param pattern? string|string[]
+---@param options? Glob.Options
+---@param interface? Glob.Interface
 ---@return Glob
 local function createGlob(pattern, options, interface)
     ---@class Glob
@@ -536,7 +569,7 @@ local function createGlob(pattern, options, interface)
         for _, pat in ipairs(pattern) do
             glob:addPattern(pat)
         end
-    else
+    elseif pattern then
         glob:addPattern(pattern)
     end
 
@@ -555,9 +588,9 @@ local function createGlob(pattern, options, interface)
     return glob
 end
 
----@param pattern string|string[]
----@param options Glob.Options
----@param interface Glob.Interface
+---@param pattern? string|string[]
+---@param options? Glob.Options
+---@param interface? Glob.Interface
 ---@return Glob
 local function createGitIgnore(pattern, options, interface)
     local glob = createGlob(pattern, options, interface)

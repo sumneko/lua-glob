@@ -68,7 +68,6 @@ local function test(gitignore, root)
         for line in gitignore:gmatch '[^\r\n]+' do
             pattern[#pattern+1] = line
         end
-        ---@type gitignore
         local session = glob.gitignore(pattern)
         if root then
             session:setOption('root', root)
