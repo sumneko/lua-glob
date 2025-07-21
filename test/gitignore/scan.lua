@@ -63,16 +63,9 @@ local function buildExpect(root)
     return result
 end
 
-local function test(gitignore, root)
+local function test(start)
     return function (dir)
-        local pattern = {}
-        for line in gitignore:gmatch '[^\r\n]+' do
-            pattern[#pattern+1] = line
-        end
-        local session = glob.gitignore(pattern)
-        if root then
-            session:setOption('root', root)
-        end
+        local session = glob.gitignore()
         session:setInterface('type', function (path)
             local current = getPath(dir, path)
             if type(current) == 'boolean' then
@@ -87,20 +80,31 @@ local function test(gitignore, root)
             if type(current) == 'table' then
                 local childs = {}
                 for name in pairs(current) do
+                    if type(name) ~= 'string' then
+                        goto continue
+                    end
                     if path == '' then
                         childs[#childs+1] = name
                     else
                         childs[#childs+1] = path .. '/' .. name
                     end
+                    ::continue::
                 end
                 table.sort(childs)
                 return childs
             end
             return nil
         end)
+        session:setInterface('patterns', function (path)
+            local current = getPath(dir, path)
+            if type(current) == 'table' and current[GITIGNORE] then
+                return current[GITIGNORE]
+            end
+            return nil
+        end)
 
         local result = {}
-        session:scan(root or '', function (path)
+        session:scan(start, function (path)
             local current = result
             local names = splitPath(path)
             for i = 1, #names-1 do
@@ -119,10 +123,11 @@ local function test(gitignore, root)
     end
 end
 
-test [[
-*.dll
-]]
+test ''
 {
+    [GITIGNORE] = {
+        '*.dll',
+    },
     ['a.lua'] = true,
     ['b.lua'] = true,
     ['c.dll'] = false,
@@ -138,11 +143,12 @@ test [[
     }
 }
 
-test [[
-*.*
-!*.lua
-]]
+test ''
 {
+    [GITIGNORE] = {
+        '*.*',
+        '!*.lua',
+    },
     ['a.lua'] = true,
     ['b.lua'] = true,
     ['c.dll'] = false,
@@ -158,10 +164,11 @@ test [[
     }
 }
 
-test [[
-/*.dll
-]]
+test ''
 {
+    [GITIGNORE] = {
+        '/*.dll'
+    },
     ['a.lua'] = true,
     ['b.lua'] = true,
     ['c.dll'] = false,
@@ -177,11 +184,12 @@ test [[
     }
 }
 
-test [[
-src/*
-!*.dll
-]]
+test ''
 {
+    [GITIGNORE] = {
+        'src/*',
+        '!*.dll',
+    },
     ['a.lua'] = true,
     ['b.lua'] = true,
     ['c.dll'] = true,
@@ -197,23 +205,25 @@ src/*
     }
 }
 
-test [[
-*.lua
-!/*.lua
-]]
+test ''
 {
+    [GITIGNORE] = {
+        '*.lua',
+        '!/*.lua',
+    },
     ['a.lua'] = true,
     ['publish'] = {
         ['a.lua'] = false,
     }
 }
 
-test([[
-/*
-!/usr
-]], 'root')
+test 'root'
 {
     ['root'] = {
+        [GITIGNORE] = {
+            '/*',
+            '!/usr',
+        },
         ['a.lua'] = false,
         ['usr'] = {
             ['a.lua'] = true,
@@ -221,11 +231,12 @@ test([[
     }
 }
 
-test([[
-XXX/YYY
-]], 'root')
+test 'root'
 {
     ['root'] = {
+        [GITIGNORE] = {
+            'XXX/YYY',
+        },
         ['a.lua'] = true,
         ['b.lua'] = true,
         ['XXX'] = {
@@ -243,10 +254,11 @@ XXX/YYY
     }
 }
 
-test('', 'root')
+test 'root'
 {
     [GITIGNORE] = {
         'b.lua',
+        '/YYY',
         'ZZZ',
     },
     ['root'] = {
@@ -256,10 +268,11 @@ test('', 'root')
         ['XXX'] = {
             [GITIGNORE] = {
                 'a.lua',
+                '/c.lua',
             },
             ['a.lua'] = false,
             ['b.lua'] = false,
-            ['c.lua'] = true,
+            ['c.lua'] = false,
             ['YYY'] = {
                 ['a.lua'] = false,
                 ['b.lua'] = false,
@@ -267,7 +280,7 @@ test('', 'root')
                 ['ZZZ'] = {
                     ['a.lua'] = false,
                     ['b.lua'] = false,
-                    ['c.lua'] = true,
+                    ['c.lua'] = false,
                 }
             },
         },
@@ -281,5 +294,10 @@ test('', 'root')
             ['b.lua'] = false,
             ['c.lua'] = false,
         }
+    },
+    ['YYY'] = {
+        ['a.lua'] = false,
+        ['b.lua'] = false,
+        ['c.lua'] = false,
     }
 }
