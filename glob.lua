@@ -104,6 +104,9 @@ local function parsePatternBracePart(pat, start)
 end
 
 ---@private
+---@param pat string
+---@return table
+---@return integer
 function M:parsePatternOr(pat)
     local result = {
         kind = 'or',
@@ -132,6 +135,8 @@ end
 
 ---@private
 ---@param pat string
+---@return table
+---@return integer
 function M:parsePattern(pat)
     if pat:sub(1, 1) == '{' then
         return self:parsePatternOr(pat)
@@ -352,6 +357,10 @@ function M:checkPatternWord(path, pattern, patIndex)
 end
 
 ---@private
+---@param paths string[]
+---@param pathIndex integer
+---@param pattern table
+---@param patIndex integer
 ---@return boolean
 function M:checkPatternSlice(paths, pathIndex, pattern, patIndex)
     local path = paths[pathIndex]
@@ -389,6 +398,7 @@ function M:checkPatternSlice(paths, pathIndex, pattern, patIndex)
     if not ok then
         return false
     end
+    ---@cast newIndex -?
     return self:checkPatternSlice(paths, pathIndex, pattern, newIndex)
 end
 
