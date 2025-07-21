@@ -135,6 +135,17 @@ function M:parsePatternOr(pat)
 end
 
 ---@private
+---@param a string
+---@param b string
+---@return boolean
+function M:pathEqual(a, b)
+    if self.options.ignoreCase then
+        return a:lower() == b:lower()
+    end
+    return a == b
+end
+
+---@private
 ---@param pat string
 ---@return table
 ---@return integer
@@ -208,6 +219,9 @@ end
 ---@param base? string
 function M:addPattern(pat, base)
     base = base or ''
+    if self.options.ignoreCase then
+        base = base:lower()
+    end
     if not self.patternMap[base] then
         self.patternMap[base] = {}
     end
@@ -236,13 +250,9 @@ end
 
 ---@private
 function M:checkPatternByBrace(path, pat)
-    local ignoreCase = self.options.ignoreCase
     if pat.singles then
         for _, single in ipairs(pat.singles) do
-            if ignoreCase then
-                single = single:lower()
-            end
-            if path:sub(1, #single) == single then
+            if self:pathEqual(path:sub(1, #single), single) then
                 return true, path:sub(#single + 1)
             end
         end
@@ -251,7 +261,7 @@ function M:checkPatternByBrace(path, pat)
     if pat.alphaRange then
         local first = pat.alphaRange[1]
         local last  = pat.alphaRange[2]
-        if ignoreCase then
+        if self.options.ignoreCase then
             first = first:lower()
             last  = last:lower()
         end
@@ -301,7 +311,6 @@ end
 
 ---@private
 function M:checkPatternWord(path, pattern, patIndex)
-    local ignoreCase = self.options.ignoreCase
     for i = patIndex, #pattern.symbols do
         local pat = pattern.symbols[i]
         if pat == '*' then
@@ -337,10 +346,7 @@ function M:checkPatternWord(path, pattern, patIndex)
         elseif path == nil then
             return false
         elseif type(pat) == 'string' then
-            if ignoreCase then
-                pat = pat:lower()
-            end
-            if path:sub(1, #pat) ~= pat then
+            if not self:pathEqual(path:sub(1, #pat), pat) then
                 return false
             end
             path = path:sub(#pat + 1)
@@ -463,10 +469,17 @@ function M:status(paths)
     if self.options.asGitIgnore then
         for i = 1, #paths do
             local base = table.concat(paths, '/', 1, i - 1)
-            local patterns = self.patternMap[base]
+            if self.options.root then
+                base = self.options.root / base
+            end
+            local patternKey = base
+            if self.options.ignoreCase then
+                patternKey = patternKey:lower()
+            end
+            local patterns = self.patternMap[patternKey]
             if not patterns then
                 patterns = {}
-                self.patternMap[base] = patterns
+                self.patternMap[patternKey] = patterns
                 if self.interface.patterns then
                     local newPatterns = self.interface.patterns(base)
                     if type(newPatterns) == 'table' then
@@ -491,15 +504,9 @@ end
 ---@param path string
 ---@return boolean
 function M:check(path)
-    if self.options.ignoreCase then
-        path = path:lower()
-    end
     local root = self.options.root
     if root then
-        if self.options.ignoreCase then
-            root = root:lower()
-        end
-        if path:sub(1, #root) == root then
+        if self:pathEqual(path:sub(1, #root), root) then
             path = path:sub(#root + 1)
         else
             return false
@@ -529,16 +536,12 @@ function M:check(path)
 end
 
 ---@private
+---@param path string
+---@return string[]
 function M:toPaths(path)
-    if self.options.ignoreCase then
-        path = path:lower()
-    end
     local root = self.options.root
     if root then
-        if self.options.ignoreCase then
-            root = root:lower()
-        end
-        if path:sub(1, #root) == root then
+        if self:pathEqual(path:sub(1, #root), root) then
             path = path:sub(#root + 1)
         else
             return {}
@@ -559,10 +562,14 @@ function M:scan(root, callback)
     local checked = {}
 
     local function check(path)
-        if checked[path] then
+        local checkedPath = path
+        if self.options.ignoreCase then
+            checkedPath = checkedPath:lower()
+        end
+        if checked[checkedPath] then
             return
         end
-        checked[path] = true
+        checked[checkedPath] = true
         if #path ~= root and self:status(self:toPaths(path)) == 'accepted' then
             return
         end

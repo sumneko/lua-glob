@@ -3,6 +3,8 @@ local glob = require 'glob'
 local EXISTS = {}
 local GITIGNORE = {}
 
+local ignoreCase = false
+
 local function eq(a, b)
     if a == EXISTS and b ~= nil then
         return true
@@ -65,7 +67,9 @@ end
 
 local function test(start)
     return function (dir)
-        local session = glob.gitignore()
+        local session = glob.gitignore(nil, {
+            ignoreCase = ignoreCase,
+        })
         session:setInterface('type', function (path)
             local current = getPath(dir, path)
             if type(current) == 'boolean' then
@@ -299,5 +303,54 @@ test 'root'
         ['a.lua'] = false,
         ['b.lua'] = false,
         ['c.lua'] = false,
+    }
+}
+
+ignoreCase = true
+test 'root'
+{
+    [GITIGNORE] = {
+        'b.Lua',
+        '/yYy',
+        'zZz',
+    },
+    ['root'] = {
+        ['A.lua'] = true,
+        ['B.lua'] = false,
+        ['C.lua'] = true,
+        ['XXX'] = {
+            [GITIGNORE] = {
+                'A.lua',
+                '/C.Lua',
+            },
+            ['A.lua'] = false,
+            ['B.lua'] = false,
+            ['C.lua'] = false,
+            ['YYY'] = {
+                ['A.lua'] = false,
+                ['B.lua'] = false,
+                ['C.lua'] = true,
+                ['ZZZ'] = {
+                    ['A.lua'] = false,
+                    ['B.lua'] = false,
+                    ['C.lua'] = false,
+                }
+            },
+        },
+        ['YYY'] = {
+            ['A.lua'] = true,
+            ['B.lua'] = false,
+            ['C.lua'] = true,
+        },
+        ['ZZZ'] = {
+            ['A.lua'] = false,
+            ['B.lua'] = false,
+            ['C.lua'] = false,
+        }
+    },
+    ['YYY'] = {
+        ['A.lua'] = false,
+        ['B.lua'] = false,
+        ['C.lua'] = false,
     }
 }
