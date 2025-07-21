@@ -105,11 +105,13 @@ end
 
 ---@private
 ---@param pat string
+---@param base? string
 ---@return table
 ---@return integer
-function M:parsePatternOr(pat)
+function M:parsePatternOr(pat, base)
     local result = {
         kind = 'or',
+        base = base,
         childs = {},
     }
 
@@ -135,15 +137,17 @@ end
 
 ---@private
 ---@param pat string
+---@param base? string
 ---@return table
 ---@return integer
-function M:parsePattern(pat)
+function M:parsePattern(pat, base)
     if pat:sub(1, 1) == '{' then
-        return self:parsePatternOr(pat)
+        return self:parsePatternOr(pat, base)
     end
 
     local result = {
         kind = 'base',
+        base = base,
         symbols = {},
     }
 
@@ -204,8 +208,9 @@ function M:parsePattern(pat)
 end
 
 ---@param pat string
-function M:addPattern(pat)
-    self.patterns[#self.patterns+1] = self:parsePattern(pat)
+---@param base? string
+function M:addPattern(pat, base)
+    self.patterns[#self.patterns+1] = self:parsePattern(pat, base)
 end
 
 ---@param op string

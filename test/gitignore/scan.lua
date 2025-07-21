@@ -1,6 +1,7 @@
 local glob = require 'glob'
 
 local EXISTS = {}
+local GITIGNORE = {}
 
 local function eq(a, b)
     if a == EXISTS and b ~= nil then
@@ -238,6 +239,47 @@ XXX/YYY
                     ['b.lua'] = false,
                 }
             },
+        }
+    }
+}
+
+test('', 'root')
+{
+    [GITIGNORE] = {
+        'b.lua',
+        'ZZZ',
+    },
+    ['root'] = {
+        ['a.lua'] = true,
+        ['b.lua'] = false,
+        ['c.lua'] = true,
+        ['XXX'] = {
+            [GITIGNORE] = {
+                'a.lua',
+            },
+            ['a.lua'] = false,
+            ['b.lua'] = false,
+            ['c.lua'] = true,
+            ['YYY'] = {
+                ['a.lua'] = false,
+                ['b.lua'] = false,
+                ['c.lua'] = true,
+                ['ZZZ'] = {
+                    ['a.lua'] = false,
+                    ['b.lua'] = false,
+                    ['c.lua'] = true,
+                }
+            },
+        },
+        ['YYY'] = {
+            ['a.lua'] = true,
+            ['b.lua'] = false,
+            ['c.lua'] = true,
+        },
+        ['ZZZ'] = {
+            ['a.lua'] = false,
+            ['b.lua'] = false,
+            ['c.lua'] = false,
         }
     }
 }
