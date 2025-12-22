@@ -1,5 +1,6 @@
 {
     "diagnostics.disable": [
         "deprecated"
-    ]
+    ],
+    "runtime.version": "Lua 5.5"
 }
